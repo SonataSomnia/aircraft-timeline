@@ -1,12 +1,19 @@
 from flask import Flask, jsonify, request
 from flask_cors import CORS
 import os
+import time
+import threading
 
 app = Flask(__name__)
 CORS(app, resources={r"/api/*": {"origins": "*", "methods": ["GET", "POST"]}})  # 允许跨域请求
 
 # 数据文件路径（用户可根据需要修改）
 DATA_FILE = os.path.join(os.path.dirname(__file__), 'data', 'data_100-5.csv')
+
+# 计算任务状态跟踪
+calculation_status = "idle"
+calculation_progress = 0
+calculation_lock = threading.Lock()
 
 @app.route('/api/get_data', methods=['GET'])
 def get_aircraft_data():
@@ -108,6 +115,65 @@ def handle_modification():
             "error": f"数据处理失败: {str(e)}"
         }), 500
 
+
+def calculate_task():
+    """模拟长时间计算任务"""
+    global calculation_progress, calculation_status
+    try:
+        calculation_status = "running"
+        calculation_progress = 0
+        
+        for i in range(10):
+            time.sleep(1)
+            calculation_progress = (i + 1) * 10
+            print(f"计算进度: {calculation_progress}%")  # 后台日志输出进度
+            
+        # 最终状态更新需要原子操作
+        with calculation_lock:
+            calculation_status = "completed"
+            calculation_progress = 100
+    except Exception as e:
+        with calculation_lock:
+            calculation_status = f"error: {str(e)}"
+            calculation_progress = -1
+        app.logger.error(f"计算任务失败: {str(e)}")
+    except Exception as e:
+        calculation_status = "error"
+        print(f"计算任务异常: {str(e)}")
+    finally:
+        # 确保释放锁资源
+        pass
+
+@app.route('/api/calculate', methods=['POST'])
+def start_calculation():
+    """启动计算任务"""
+    global calculation_status, calculation_progress
+    with calculation_lock:
+        if calculation_status == "running":
+            return jsonify({"status": "error", "message": "计算任务正在进行中"}), 409
+        
+        # 立即更新状态防止重复触发
+        calculation_status = "running"
+        calculation_progress = 0
+            
+        # 在锁外启动线程以避免阻塞
+        thread = threading.Thread(target=calculate_task)
+        thread.start()
+        
+        return jsonify({
+            "status": "success",
+            "message": "计算任务已启动",
+            "task_id": thread.ident
+        }), 202
+
+@app.route('/api/calculate/status', methods=['GET'])
+def get_calculation_status():
+    """获取计算任务状态"""
+    return jsonify({
+        "status": calculation_status,
+        "progress": calculation_progress,
+        "timestamp": time.time()
+    }), 200
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)

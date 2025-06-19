@@ -451,7 +451,25 @@ const App = () => {
     }
   };
 
+  const calculate = async () => {
+    try {
+      const response = await fetch('http://localhost:5000/api/calculate', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
 
+      if (!response.ok) {
+        throw new Error(`上传失败: ${response.status}`);
+      }
+
+      const result = await response.json();
+      console.log('修改数据上传成功:', result);
+    } catch (err) {
+      console.log('修改数据上传失败: ' + err.message);
+    } 
+  }
   // 初始化加载数据
   useEffect(() => {
     const initData = async () => {
@@ -475,16 +493,22 @@ const App = () => {
           justifyContent: 'normal'
         }
       }>
-        <span className="save-controls">
-          <button className="save-btn" onClick={uploadModification}>
+        <span className="upload-modification-controls">
+          <button className="upload-modification-btn" onClick={uploadModification}>
             <i className="fas fa-plus"></i> 上传更改
           </button>
         </span>
 
-        <span className="upload-controls">
-          <button className="upload-btn" onClick={uploadDisturbance}>
+        <span className="upload-disturbance-controls">
+          <button className="upload-disturbance-btn" onClick={uploadDisturbance}>
             <i className="fas fa-plus"></i> 编辑扰动
           </button>
+        </span>
+
+          <span className="calculate-controls">
+            <button className="calculate-btn" onClick={calculate}>
+              <i className="fas fa-plus"></i> 求解
+            </button>  
         </span>
 
 
