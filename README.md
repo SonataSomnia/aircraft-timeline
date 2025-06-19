@@ -43,7 +43,7 @@ cd ../aircraft-timeline-frontend && npm start
 ## 开发注意事项
 1. API调试工具：
 ```bash
-curl -X GET http://localhost:5000/api/get_data | json_pp
+curl -X GET http://localhost:5000/api/get_data 
 ```
 
 2. 数据修改流程：
