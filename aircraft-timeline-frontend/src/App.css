@@ -1,0 +1,46 @@
+:root{
+    --group-height:6em;
+}
+.aircraft-group{
+    height: var(--group-height) !important;
+}
+.aircraft-group-modified {
+    height: var(--group-height) !important;
+}
+
+.flight-card-wrapper{
+    background-color: #ffffff00; 
+}
+
+.flight-card {
+    min-width: 4em;
+    margin: 5px;
+}
+
+.overlap-interval {
+    background-color: #ff000066 !important;
+    height: var(--group-height) !important;
+}
+
+/* 允许时间轴项内容溢出 */
+.vis-timeline {
+    overflow-x: auto;
+}
+
+.vis-item-overflow {
+    overflow: visible !important;
+}
+
+.vis-item{
+    border: 0cap !important;
+    
+}
+
+.vis-item-content{
+    padding: 0% !important;
+}
+
+.vis-item.vis-range{
+    top:5px !important;
+}
+

@@ -1,0 +1,241 @@
+// src/Modal.js
+import React, { useState, useEffect } from 'react';
+import './App.css';
+
+const DIS_OPTIONS = [
+  { value: '1', label: '1', indexKey: 'flight' },
+  { value: '2', label: '2', indexKey: 'aircraft' },
+  { value: '3', label: '3', indexKey: 'airport' }
+];
+
+const DisturbanceForm = ({ onSubmit, onClose, initialData, onDataChange }) => {
+  const [formData, setFormData] = useState(initialData || {
+    dis: '1',
+    dis_ind: 'flight',
+    dis_time: '',
+    dis_value: ''
+  });
+
+  useEffect(() => {
+    if (onDataChange) {
+      onDataChange(formData);
+    }
+  }, [formData, onDataChange]);
+
+  useEffect(() => {
+    if (formData.dis === '2') {
+      setFormData(prev => ({...prev, dis_value: null}));
+    }
+  }, [formData.dis]);
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    onSubmit(formData);
+    // 不再自动关闭，由父组件控制
+  };
+
+  return (
+    <div className="modal-overlay" style={{
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      backgroundColor: 'rgba(0,0,0,0.5)',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      zIndex: 1000
+    }}>
+      <div className="modal-content" style={{
+        padding: '20px',
+        backgroundColor: 'white',
+        borderRadius: '8px',
+        maxWidth: '400px',
+        width: '90%',
+        boxShadow: '0 4px 8px rgba(0,0,0,0.2)'
+      }}>
+        <h3 style={{ marginBottom: '15px', textAlign: 'center' }}>扰动数据录入</h3>
+        <form onSubmit={handleSubmit}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '15px' }}>
+            <thead>
+              <tr>
+                <th style={{ padding: '8px', borderBottom: '1px solid #ddd', textAlign: 'left' }}>字段</th>
+                <th style={{ padding: '8px', borderBottom: '1px solid #ddd', textAlign: 'left' }}>输入值</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td style={{ padding: '8px', borderBottom: '1px solid #eee' }}>扰动类型 (dis):</td>
+                <td style={{ padding: '8px', borderBottom: '1px solid #eee' }}>
+                  <select
+                    required
+                    style={{ width: '100%', padding: '6px' }}
+                    value={formData.dis}
+                    onChange={(e) => {
+                      const selected = DIS_OPTIONS.find(o => o.value === e.target.value);
+                      setFormData({
+                        ...formData,
+                        dis: e.target.value,
+                        dis_ind: selected.indexKey
+                      });
+                    }}
+                  >
+                    {DIS_OPTIONS.map(option => (
+                      <option key={option.value} value={option.value}>{option.label}</option>
+                    ))}
+                  </select>
+                </td>
+              </tr>
+              <tr>
+                <td style={{ padding: '8px', borderBottom: '1px solid #eee' }}>指标 (dis_ind):</td>
+                <td style={{ padding: '8px', borderBottom: '1px solid #eee' }}>
+                  <input
+                    type="text"
+                    readOnly
+                    style={{ width: '100%', padding: '6px', backgroundColor: '#f5f5f5' }}
+                    value={formData.dis_ind}
+                  />
+                </td>
+              </tr>
+              <tr>
+                <td style={{ padding: '8px', borderBottom: '1px solid #eee' }}>时间 (dis_time):</td>
+                <td style={{ padding: '8px', borderBottom: '1px solid #eee' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <input
+                      type="number"
+                      required
+                      min="0"
+                      style={{ width: '100%', padding: '6px' }}
+                      value={formData.dis_time}
+                      onChange={(e) => setFormData({...formData, dis_time: e.target.value})}
+                    />
+                    <span style={{ whiteSpace: 'nowrap' }}>min</span>
+                  </div>
+                </td>
+              </tr>
+              <tr>
+                <td style={{ padding: '8px' }}>值 (dis_value):</td>
+                <td style={{ padding: '8px' }}>
+                  {formData.dis === '3' ? (
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      <input
+                        type="text"
+                        pattern="[0-9]{4}"
+                        placeholder="HHMM"
+                        style={{ width: '100%', padding: '6px' }}
+                        value={formData.dis_value?.split('-')[0] || ''}
+                        onChange={(e) => {
+                          const end = formData.dis_value?.split('-')[1] || '';
+                          setFormData({...formData, dis_value: `${e.target.value}-${end}`});
+                        }}
+                      />
+                      <span>-</span>
+                      <input
+                        type="text"
+                        pattern="[0-9]{4}"
+                        placeholder="HHMM"
+                        style={{ width: '100%', padding: '6px' }}
+                        value={formData.dis_value?.split('-')[1] || ''}
+                        onChange={(e) => {
+                          const start = formData.dis_value?.split('-')[0] || '';
+                          setFormData({...formData, dis_value: `${start}-${e.target.value}`});
+                        }}
+                      />
+                    </div>
+                  ) : (
+                    <input
+                      type="number"
+                      required={formData.dis === '1'}
+                      disabled={formData.dis === '2'}
+                      step="1"
+                      style={{ width: '100%', padding: '6px', ...(formData.dis === '2' && { backgroundColor: '#f5f5f5' }) }}
+                      value={formData.dis === '2' ? '' : formData.dis_value}
+                      onChange={(e) => setFormData({...formData, dis_value: e.target.value})}
+                    />
+                  )}
+                </td>
+              </tr>
+            </tbody>
+          </table>
+
+          <div className="modal-actions" style={{ marginTop: '20px', textAlign: 'right' }}>
+            <button type="button" onClick={onClose} className="cancel-btn">
+              取消
+            </button>
+            <button type="submit" className="submit-btn">
+              提交
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
+
+const FlightCard = ({ color, airline, flightType, SDT, SAT, from, to, overlap }) => (
+    <div className="flight-card-wrapper">
+        <div
+            className="top-bar"
+            style={{
+                height: '7px',
+                backgroundColor: color,
+                marginBottom: '8px'
+            }}
+        />
+        <div
+            className="flight-card"
+            style={{
+                backgroundColor: overlap ? '#ff666699' : 'white',
+                border: `2px solid ${color}`,
+                borderRadius: '8px',
+                padding: '6px',
+            }}
+        >
+            <div className="flight-info" >
+                <span className="airline">{airline}</span>
+                <span className="type">✈️ {flightType}</span>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize:'0.66em'}}>
+                    <span className="SDT">{SDT}</span>
+                    <span className="SAT">{SAT}</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between' , fontSize: '0.66em' }}>
+                    <span className="from">{from}</span>
+                    <span className="to">{to}</span>
+                </div>
+            </div>
+        </div>
+    </div>
+);
+
+const minuteToHhmm = (minute) => {
+    let hhmm = Math.floor(minute / 60) * 100 + minute % 60;
+    if (hhmm >= 2400) {
+        hhmm -= 2400;
+    }
+    return hhmm.toString().padStart(4, '0'); // 使用 padStart 补全4位前导零
+};
+
+function setFlightCard(item){
+    item.content = (
+        <FlightCard
+            color={item.color}
+            airline={item.Reporting_Airline}
+            flightType={item.ACtype}
+            SDT={minuteToHhmm(Math.floor(item.SDT / 60))}
+            SAT={minuteToHhmm(Math.floor(item.SAT / 60))}
+            from={item.Form}
+            to={item.To}
+            overlap={item.overlap}
+        />
+    )
+}
+
+
+
+export {
+        FlightCard,
+        minuteToHhmm,
+        setFlightCard,
+        DisturbanceForm
+    };
