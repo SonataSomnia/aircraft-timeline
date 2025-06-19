@@ -8,7 +8,7 @@ CORS(app, resources={r"/api/*": {"origins": "*", "methods": ["GET", "POST"]}})  
 # 数据文件路径（用户可根据需要修改）
 DATA_FILE = os.path.join(os.path.dirname(__file__), 'data', 'data_100-5.csv')
 
-@app.route('/api/get-data', methods=['GET'])
+@app.route('/api/get_data', methods=['GET'])
 def get_aircraft_data():
     """
     读取航空器时间轴数据文件并返回JSON格式数据
@@ -34,7 +34,7 @@ def get_aircraft_data():
             "error": f"Error reading data: {str(e)}"
         }), 500
 
-@app.route('/api/submit-disturbance', methods=['POST'])
+@app.route('/api/submit_disturbance', methods=['POST'])
 def handle_disturbance():
     """处理扰动数据提交并保存到CSV文件"""
     try:
@@ -66,6 +66,48 @@ def handle_disturbance():
         return jsonify({
             "error": f"Error processing request: {str(e)}"
         }), 500
+
+@app.route('/api/upload_modification', methods=['POST'])
+def handle_modification():
+    """处理前端修改数据的上传并保存为CSV"""
+    try:
+        # 获取并验证数据
+        data = request.get_json()
+        if not data or 'dataModified' not in data:
+            return jsonify({"error": "Missing dataModified field"}), 400
+
+        # 获取模板文件的表头顺序
+        with open(DATA_FILE, 'r', encoding='utf-8') as f:
+            header = f.readline().strip().split(',')
+
+        # 构建CSV内容
+        csv_content = []
+        csv_content.append(','.join(header))  # 使用模板文件的表头顺序
+        
+        for item in data['dataModified']:
+            # 按模板表头顺序生成行数据
+            row = [str(item.get(field, '')) for field in header]
+            csv_content.append(','.join(row))
+
+        # 保存文件
+        data_dir = os.path.join(os.path.dirname(__file__), 'data')
+        os.makedirs(data_dir, exist_ok=True)
+        csv_path = os.path.join(data_dir, 'data_modified.csv')
+        
+        with open(csv_path, 'w', newline='', encoding='utf-8') as f:
+            f.write('\n'.join(csv_content))
+
+        return jsonify({
+            "status": "success",
+            "message": f"保存成功，共处理{len(data['dataModified'])}条记录",
+            "file_path": csv_path
+        }), 200
+
+    except Exception as e:
+        return jsonify({
+            "error": f"数据处理失败: {str(e)}"
+        }), 500
+
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)

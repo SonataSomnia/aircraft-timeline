@@ -18,8 +18,10 @@ var groups = []
 const App = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [uploading, setUploading] = useState(false);
-  const [uploadError, setUploadError] = useState(null);
+  const [uploadingDisturbance, setUploadingDisturbance] = useState(false);
+  const [uploadDisturbanceError, setUploadDisturbanceError] = useState(null);
+  const [uploadingModification, setUploadingModification] = useState(false);
+  const [uploadModificationError, setUploadModificationError] = useState(null);
   const [showDisturbanceForm, setShowDisturbanceForm] = useState(false);
   const [formData, setFormData] = useState(null);
   const timelineRef = useRef(null);
@@ -60,7 +62,7 @@ const App = () => {
         setError(null);
 
         // 直接加载本地CSV文件
-        const response = await fetch('http://localhost:5000/api/get-data');
+        const response = await fetch('http://localhost:5000/api/get_data');
         if (!response.ok) {
           throw new Error(`文件加载失败: ${response.status}`);
         }
@@ -383,6 +385,32 @@ const App = () => {
 
 
 
+  const uploadModification = async () => {
+    try {
+      setUploadingModification(true);
+      setUploadModificationError(null);
+      const response = await fetch('http://localhost:5000/api/upload_modification', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ dataModified: JSON.parse(localStorage.getItem('savedData')).dataModified }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`上传失败: ${response.status}`);
+      }
+
+      const result = await response.json();
+      console.log('修改数据上传成功:', result);
+      setUploadModificationError(null);
+    } catch (err) {
+      setUploadModificationError('修改数据上传失败: ' + err.message);
+    } finally {
+      setUploadingModification(false);
+    }
+  };
+
   const uploadDisturbance = () => {
     setShowDisturbanceForm(true);
     // 保留之前填写的表单数据
@@ -398,9 +426,9 @@ const App = () => {
 
   const handleDisturbanceSubmit = async (formData) => {
     try {
-      setUploading(true);
-      setUploadError(null);
-      const response = await fetch('http://localhost:5000/api/submit-disturbance', {
+      setUploadingDisturbance(true);
+      setUploadDisturbanceError(null);
+      const response = await fetch('http://localhost:5000/api/submit_disturbance', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -414,11 +442,11 @@ const App = () => {
 
       const result = await response.json();
       console.log('提交成功:', result);
-      setUploadError(null);
+      setUploadDisturbanceError(null);
     } catch (err) {
-      setUploadError('扰动提交失败: ' + err.message);
+      setUploadDisturbanceError('扰动提交失败: ' + err.message);
     } finally {
-      setUploading(false);
+      setUploadingDisturbance(false);
       setShowDisturbanceForm(false);
     }
   };
@@ -448,7 +476,7 @@ const App = () => {
         }
       }>
         <span className="save-controls">
-          <button className="save-btn">
+          <button className="save-btn" onClick={uploadModification}>
             <i className="fas fa-plus"></i> 上传更改
           </button>
         </span>
@@ -485,26 +513,49 @@ const App = () => {
           onSubmit={handleDisturbanceSubmit}
           onClose={() => setShowDisturbanceForm(false)}
           initialData={formData}
-          onDataChange={setFormData}
-        />
+          onDataChange={setFormData}>
+
+        </DisturbanceForm>
+        
       )}
       <div className="upload-status">
-        {uploading && (
+        {uploadingDisturbance && (
           <div className="loading">
             <div className="spinner"></div>
             <p>正在提交扰动数据...</p>
           </div>
         )}
-        {uploadError && (
-          <div className="error">
+        {uploadDisturbanceError && (
+          <div className="error"><p>
             <i className="fas fa-exclamation-triangle"></i>
-            <span>{uploadError}</span>
-            <button onClick={() => setUploadError(null)} className="cancel-retry-btn">
+            <span>{uploadDisturbanceError}</span>
+            <button onClick={() => setUploadDisturbanceError(null)} className="cancel-retry-btn">
               取消
             </button>
             <button onClick={() => handleDisturbanceSubmit(formData)} className="retry-btn">
               重试
             </button>
+          </p>
+          </div>
+        )}
+        {uploadingModification && (
+          <div className="loading">
+            <div className="spinner"></div>
+            <p>正在提交修改后的数据...</p>
+          </div>
+        )}
+        {uploadModificationError && (
+          <div className="error">
+            <p>
+            <i className="fas fa-exclamation-triangle"></i>
+            <span>{uploadModificationError}</span>
+            <button onClick={() => setUploadModificationError(null)} className="cancel-retry-btn">
+              取消
+            </button>
+            <button onClick={() => uploadModification(formData)} className="retry-btn">
+              重试
+            </button>
+            </p>
           </div>
         )}
       </div>
