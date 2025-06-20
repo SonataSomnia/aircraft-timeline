@@ -233,9 +233,65 @@ function setFlightCard(item){
 
 
 
+const EditForm = ({ item, onSubmit, onClose }) => {
+  const [formData, setFormData] = useState(item);
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    onSubmit(formData);
+    onClose();
+  };
+
+  return (
+    <div className="modal-overlay" style={{
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      backgroundColor: 'rgba(0,0,0,0.5)',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      zIndex: 1000 
+    }}>
+      <div className="modal-content" style={{
+        padding: '20px',
+        backgroundColor: 'white',
+        borderRadius: '8px',
+        maxWidth: '400px',
+        width: '90%',
+        boxShadow: '0 4px 8px rgba(0,0,0,0.2)'
+      }}>
+        <h3>编辑航班属性: {item.id}</h3>
+        <form onSubmit={handleSubmit}>
+          {Object.entries(item).map(([key, value]) => {
+            if (['id', 'status', 'content', 'group', 'className', 'style', 'editable', 'color','overlap'].includes(key)) return null;
+            return (
+              <div className="form-group" key={key}>
+                <label>{key}:</label>
+                <input
+                  type="text"
+                  value={formData[key] ?? ''}
+                  onChange={(e) => setFormData({...formData, [key]: e.target.value.toString()})}
+                />
+              </div>
+            );
+          })}
+          <div className="modal-actions">
+            <button type="button" onClick={onClose}>取消</button>
+            <button type="submit">确认</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
+
 export {
-        FlightCard,
-        minuteToHhmm,
-        setFlightCard,
-        DisturbanceForm
-    };
+  FlightCard,
+  minuteToHhmm,
+  setFlightCard,
+  DisturbanceForm,
+  EditForm
+};

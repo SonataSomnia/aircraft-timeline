@@ -9,7 +9,8 @@ import {
   FlightCard,
   minuteToHhmm,
   setFlightCard,
-  DisturbanceForm
+  DisturbanceForm,
+  EditForm
 } from './Modal';
 var data = [];
 var dataModified = [];
@@ -27,6 +28,8 @@ const App = () => {
   const [showDisturbanceForm, setShowDisturbanceForm] = useState(false);
   const [showInstructions, setShowInstructions] = useState(false);
   const [formData, setFormData] = useState(null);
+  const [showEditForm, setShowEditForm] = useState(false);
+  const [selectedItem, setSelectedItem] = useState(null);
   const timelineRef = useRef(null);
   const timelineContainerRef = useRef(null);
 
@@ -261,6 +264,7 @@ const App = () => {
         handleItemMoved(item, originalItem, callback);
       },
       onUpdate: handleItemUpdated,
+      onAdd:()=>{},
       groupHeightMode: "fixed",
       template: (item, element, data) => {
         return ReactDOMServer.renderToString(item.content);
@@ -435,13 +439,46 @@ const App = () => {
     return record
   }
   // 处理项目更新
+
   const handleItemUpdated = (item, callback) => {
-    item.overlap = true;
+    const record = findData(item);
+    if (record) {
+      setSelectedItem(item);
+      setShowEditForm(true);
+    }
     callback(item);
+  
+  }
+
+  const handleFormSubmit = (formData) => {
+    const record = findData(selectedItem);
+    Object.entries(formData).forEach(([key, value]) => {
+      if (key !== 'id' && key !== 'status') {
+        record[key] = value;
+      }
+    });
+
+    // 更新本地存储
+    localStorage.setItem('savedData', JSON.stringify({ data, dataModified }));
+
+    // 更新时间轴项目显示
+    selectedItem.content = (
+      <FlightCard
+        color={selectedItem.color}
+        airline={record.Reporting_Airline}
+        flightType={record.ACtype}
+        SDT={minuteToHhmm(Math.floor(record.SDT / 60))}
+        SAT={minuteToHhmm(Math.floor(record.SAT / 60))}
+        from={record.Form}
+        to={record.To}
+        overlap={selectedItem.overlap}
+      />
+    );
+    items.update(selectedItem);
+
+    // 关闭表单
+    setShowEditForm(false);
   };
-
-
-
 
 
   const uploadModification = async () => {
@@ -643,6 +680,17 @@ const App = () => {
           onDataChange={setFormData}>
 
         </DisturbanceForm>
+
+      )}      
+      {showEditForm && (
+        <EditForm
+          item={selectedItem}
+          onSubmit={handleFormSubmit}
+          onClose={() => {
+            setShowEditForm(false);
+            setSelectedItem(null);
+          }}
+        />
 
       )}
       <div className="upload-status">
