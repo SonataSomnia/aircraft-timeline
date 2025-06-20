@@ -404,15 +404,10 @@ const App = () => {
       return Math.round(diff / 1000 / 60);
     };
 
-    // 解析航班号和状态
-    const [airline, flight, status] = item.id.split('-');
+
 
     // 找到对应的数据记录
-    const targetArray = dataModified
-    const record = targetArray.find(r =>
-      r.IATA_CODE_Reporting_Airline === airline &&
-      r.Flight === parseInt(flight)
-    );
+    const record=findData(item);
     console.log('moving', item.start, item.end, item.id, item.group);
     if (record) {
       // 更新时间数据
@@ -429,6 +424,16 @@ const App = () => {
     callback(item);
   };
 
+  const findData=(item)=>{
+    // 解析航班号和状态
+    const [airline, flight, status] = item.id.split('-');
+    const targetArray = dataModified
+    const record = targetArray.find(r =>
+      r.IATA_CODE_Reporting_Airline === airline &&
+      r.Flight === parseInt(flight)
+    );
+    return record
+  }
   // 处理项目更新
   const handleItemUpdated = (item, callback) => {
     item.overlap = true;
