@@ -25,6 +25,7 @@ const App = () => {
   const [uploadingModification, setUploadingModification] = useState(false);
   const [uploadModificationError, setUploadModificationError] = useState(null);
   const [showDisturbanceForm, setShowDisturbanceForm] = useState(false);
+  const [showInstructions, setShowInstructions] = useState(false);
   const [formData, setFormData] = useState(null);
   const timelineRef = useRef(null);
   const timelineContainerRef = useRef(null);
@@ -703,10 +704,31 @@ const App = () => {
       </div>
 
       <div className="instructions">
-        <h3>使用说明：</h3>
-        <ul>
-          <li>pass</li>
-        </ul>
+        <div
+          className="instructions-header"
+          onClick={() => setShowInstructions(!showInstructions)}
+          style={{ cursor: 'pointer', display: 'flex', alignItems: 'center' }}
+        >
+          <b style={{ marginRight: '10px' }}>使用说明</b>
+          <span style={{ transform: `rotate(${showInstructions ? 180 : 0}deg)`, transition: 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)' }}>
+            ▼
+          </span>
+        </div>
+        
+          <div style={{
+            maxHeight: showInstructions ? '200px' : '0',
+            overflow: 'hidden',
+            transition: 'max-height 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+            opacity: showInstructions ? 1 : 0.8
+          }}>
+          <ul>
+            <li>点击时间轴条目拖拽调整时间</li>
+            <li>双击条目查看详细信息</li>
+            <li>使用右侧工具栏上传修改或添加扰动</li>
+            <li>点击"求解"按钮进行冲突检测和优化</li>
+          </ul>
+          </div>
+        
       </div>
 
       <footer className="app-footer">
