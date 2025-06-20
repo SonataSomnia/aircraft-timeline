@@ -769,17 +769,33 @@ const App = () => {
         </div>
         
           <div style={{
-            maxHeight: showInstructions ? '200px' : '0',
+            maxHeight: showInstructions ? '600px' : '0',
             overflow: 'hidden',
             transition: 'max-height 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
             opacity: showInstructions ? 1 : 0.8
           }}>
-          <ul>
-            <li>点击时间轴条目拖拽调整时间</li>
-            <li>双击条目查看详细信息</li>
-            <li>使用右侧工具栏上传修改或添加扰动</li>
-            <li>点击"求解"按钮进行冲突检测和优化</li>
-          </ul>
+          <div className="instruction-sections">
+            <div className="section">
+              <h3>✈️ 航班操作</h3>
+              <ul>
+                <li>拖拽 <strong>半透明航班</strong> 调整时间/机型</li>
+                <li>双击航班打开详细参数编辑</li>
+                <li>红色背景区域表示时间冲突</li>
+              </ul>
+            </div>
+
+            <div className="section">
+              <h3>🛠️ 工具栏功能</h3>
+              <ul>
+                <li><strong>上传更改</strong>：保存修改到服务端</li>
+                <li><strong>编辑扰动</strong>：添加机场中断等扰动</li>
+                <li><strong>求解</strong>：自动优化冲突并生成新方案</li>
+                <li><strong>还原</strong>：重置所有未保存的修改</li>
+              </ul>
+            </div>
+
+            
+          </div>
           </div>
         
       </div>
