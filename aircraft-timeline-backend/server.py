@@ -3,17 +3,19 @@ from flask_cors import CORS
 import os
 import time
 import threading
-
+from flask import Response, stream_with_context
 app = Flask(__name__)
 CORS(app, resources={r"/api/*": {"origins": "*", "methods": ["GET", "POST"]}})  # 允许跨域请求
 
 # 数据文件路径（用户可根据需要修改）
-DATA_FILE = os.path.join(os.path.dirname(__file__), 'data', 'data_100-5.csv')
-
+DATA_FILE = os.path.join(os.path.dirname(__file__), 'data', 'data.csv')
+data_map=dict(original="data.csv",modified="data_modified.csv",calculated="data_calculated.csv")
 # 计算任务状态跟踪
 calculation_status = "idle"
 calculation_progress = 0
 calculation_lock = threading.Lock()
+
+
 
 @app.route('/api/get_data', methods=['GET'])
 def get_aircraft_data():
@@ -21,15 +23,28 @@ def get_aircraft_data():
     读取航空器时间轴数据文件并返回JSON格式数据
     """
     try:
+        # 从请求参数获取文件名，默认为原始数据文件
+        filename = data_map[request.args.get('file', 'original')]
+        data_dir = os.path.join(os.path.dirname(__file__), 'data')
+        
+        # 构建安全路径（防止路径遍历攻击）
+        try:
+            file_path = os.path.join(data_dir, filename)
+            abs_path = os.path.abspath(file_path)
+            if not abs_path.startswith(os.path.abspath(data_dir)):
+                return jsonify({"error": "Invalid file path"}), 400
+        except Exception as e:
+            return jsonify({"error": f"路径解析失败: {str(e)}"}), 400
+
         # 安全检查：确保文件存在且在项目目录内
-        if not os.path.exists(DATA_FILE):
-            return jsonify({"error": "Data file not found"}), 404
+        if not os.path.exists(abs_path):
+            return jsonify({"error": f"文件 {filename} 不存在"}), 404
             
-        if not os.path.isfile(DATA_FILE):
-            return jsonify({"error": "Invalid data file path"}), 400
+        if not os.path.isfile(abs_path):
+            return jsonify({"error": "无效的文件路径"}), 400
 
         # 读取并返回文件内容
-        with open(DATA_FILE, 'r', encoding='utf-8') as f:
+        with open(abs_path, 'r', encoding='utf-8') as f:
             data = f.read()
             return jsonify({
                 "status": "success",
@@ -166,14 +181,29 @@ def start_calculation():
             "task_id": thread.ident
         }), 202
 
-@app.route('/api/calculate/status', methods=['GET'])
-def get_calculation_status():
-    """获取计算任务状态"""
-    return jsonify({
-        "status": calculation_status,
-        "progress": calculation_progress,
-        "timestamp": time.time()
-    }), 200
+
+@app.route('/api/stream')
+def event_stream():
+    def generate():
+        while True:
+            with calculation_lock:
+                status = calculation_status
+                progress = calculation_progress
+            
+            # SSE格式要求
+            event_data = f"data: {{\"status\": \"{status}\", \"progress\": {progress}, \"timestamp\": {time.time()}}}\n\n"
+            yield event_data
+            
+            if status == "completed" or "error" in status:
+                break
+                
+            time.sleep(0.5)  # 更新间隔
+
+
+
+    return Response(stream_with_context(generate()),
+                  mimetype="text/event-stream",
+                  headers={'X-Accel-Buffering': 'no'})  # 禁用Nginx缓存
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    app.run(host='0.0.0.0', port=5000, debug=True, threaded=True)
