@@ -18,6 +18,8 @@ var groups = []
 const App = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [calculationStatus, setCalculationStatus] = useState('idle');
+  const [progress, setProgress] = useState(0);
   const [uploadingDisturbance, setUploadingDisturbance] = useState(false);
   const [uploadDisturbanceError, setUploadDisturbanceError] = useState(null);
   const [uploadingModification, setUploadingModification] = useState(false);
@@ -48,9 +50,10 @@ const App = () => {
   const timelineEnd = new Date(timelineBaseDate);
   timelineEnd.setSeconds(timelineBaseDate.getSeconds() + 129600);
 
-  const fetchData = async () => {
+  const getData = async () => {
     try {
-
+      setLoading(true);
+      setError(null);
       const savedData = localStorage.getItem('savedData');
       if (savedData) {
         data = JSON.parse(savedData).data;
@@ -58,50 +61,53 @@ const App = () => {
         console.log('从本地读取缓存');
       }
       else {
-        setLoading(true);
-        setError(null);
-
-        // 直接加载本地CSV文件
-        const response = await fetch('http://localhost:5000/api/get_data');
-        if (!response.ok) {
-          throw new Error(`文件加载失败: ${response.status}`);
-        }
-        const csvData = await response.json();
-
-
-
-        const parsedData = Papa.parse(csvData.data, {
-          header: true,
-          dynamicTyping: true,
-          skipEmptyLines: true,
-          delimiter: ',',  // 显式指定分隔符
-          quoteChar: '"',  // 明确引用符
-          escapeChar: '\\' // 处理转义字符
-        });
-
-        if (parsedData.errors.length > 0) {
-          throw new Error('CSV解析错误: ' + parsedData.errors[0].message);
-        }
-
-
-        // 缓存数据
-        const newData = parsedData.data.map(item => ({
-          ...item,
-          status: `original`,
-        }));
-        const newModifiedData = newData.map(item => ({
+        data = await fetchData('original');
+        dataModified = data.map(item => ({
           ...item,
           status: `modified`,
         }));
-        console.log(newData);
-        data = newData;
-        dataModified = newModifiedData;
         localStorage.setItem('savedData', JSON.stringify({ data, dataModified }));
       }
     } catch (err) {
       setError('数据加载失败: ' + err.message);
       setLoading(false);
     }
+  }
+
+
+  const fetchData = async (file) => {
+    // 直接加载本地CSV文件
+    const response = await fetch(`http://localhost:5000/api/get_data?file=${file}`);
+    if (!response.ok) {
+      throw new Error(`文件加载失败: ${response.status}`);
+    }
+    const csvData = await response.json();
+
+
+
+    const parsedData = Papa.parse(csvData.data, {
+      header: true,
+      dynamicTyping: true,
+      skipEmptyLines: true,
+      delimiter: ',',  // 显式指定分隔符
+      quoteChar: '"',  // 明确引用符
+      escapeChar: '\\' // 处理转义字符
+    });
+
+    if (parsedData.errors.length > 0) {
+      throw new Error('CSV解析错误: ' + parsedData.errors[0].message);
+    }
+
+
+    // 缓存数据
+    const data = parsedData.data.map(item => ({
+      ...item,
+      status: `original`,
+    }));
+
+    return data;
+
+
   };
 
   const convertData = async () => {
@@ -145,6 +151,8 @@ const App = () => {
       return timelineItem;
     });
 
+    
+
     // 按飞机型号创建分组（原始+备份）
     const aircraftTypes = [...new Set(data.map(item => item.Aircraft))];
     const transformedGroups = aircraftTypes.flatMap(aircraft => {
@@ -177,7 +185,53 @@ const App = () => {
     console.log(items);
     setLoading(false);
   }
-  // 初始化时间轴
+  const convertUpdatedData = async () => {
+    const data = await fetchData('calculated');
+    const transformedItems = data.flatMap((item) => {
+      const originalGroupId = parseInt(item.Aircraft, 10);
+      const color = stringToColor(item.Flight, item.Aircraft, 1);
+      const timelineItem = {
+        ...item,
+        id: `${item.IATA_CODE_Reporting_Airline}-${item.Flight}`,
+        content: (
+          <FlightCard
+            color={color}
+            airline={item.Reporting_Airline}
+            flightType={item.ACtype}
+            SDT={minuteToHhmm(Math.floor(item.SDT / 60))}
+            SAT={minuteToHhmm(Math.floor(item.SAT / 60))}
+            from={item.Form}
+            to={item.To}
+            overlap={false}
+          />
+        ),
+        start: new Date(timelineBaseDate.getTime() + item.SDT * 1000),
+        end: new Date(timelineBaseDate.getTime() + item.SAT * 1000),
+        group:  originalGroupId,
+        className: 'flight-item',
+        style: `background-color: #ffffff00;`,
+        editable: {
+          updateTime: false,
+          updateGroup: false,
+        },
+        color: color,
+        overlap: false,
+      };
+      return timelineItem;
+    });
+
+    items.update(transformedItems);
+    setCalculationStatus('idle')
+    // groups = new DataSet(transformedGroups);
+    // const initOverlapIntervals = transformedGroups.flatMap(group => {
+    //   console.log(group);
+    //   return updateOverlap([group.id]);
+    // })
+    // items.add(initOverlapIntervals);
+    // console.log(items);
+    // setLoading(false);
+  }
+
   useEffect(() => {
     if (items.length === 0 || groups.length === 0 || !timelineContainerRef.current) return;
 
@@ -313,8 +367,8 @@ const App = () => {
   // 处理项目移动
   const handleItemMoved = (item, oldItem, callback) => {
     console.log(item.group % 1, item.group)
-    if(item.group%1===0){
-      
+    if (item.group % 1 === 0) {
+
       callback(null);
       return;
     }
@@ -351,7 +405,6 @@ const App = () => {
 
     // 解析航班号和状态
     const [airline, flight, status] = item.id.split('-');
-    const isModified = status === 'modified';
 
     // 找到对应的数据记录
     const targetArray = dataModified
@@ -359,7 +412,7 @@ const App = () => {
       r.IATA_CODE_Reporting_Airline === airline &&
       r.Flight === parseInt(flight)
     );
-    console.log('moving to', record.group, item.start, item.end, item.id, item.group);
+    console.log('moving', item.start, item.end, item.id, item.group);
     if (record) {
       // 更新时间数据
       record.SDT = dateToMinute(item.start) * 60;
@@ -466,14 +519,45 @@ const App = () => {
 
       const result = await response.json();
       console.log('修改数据上传成功:', result);
+      // 添加SSE监听
+      const eventSource = new EventSource('http://localhost:5000/api/stream');
+      eventSource.addEventListener('end', () => {
+        eventSource.close();
+        setCalculationStatus('completed');
+      });
+      eventSource.onmessage = (e) => {
+        try {
+          const data = JSON.parse(e.data);
+          setCalculationStatus(data.status);
+          setProgress(data.progress);
+          console.log(eventSource.readyState);
+          console.log(data);
+        } catch (err) {
+          console.error('SSE解析错误:', err);
+        }
+      };
+
+      eventSource.onerror = (e) => {
+        if (e.eventPhase === EventSource.CLOSED) {
+          console.log('SSE连接正常关闭');
+        } else {
+          console.log('SSE连接错误:', e);
+        }
+        eventSource.close();
+      };
+
+      return () => {
+        eventSource.close();
+      };
+
     } catch (err) {
       console.log('修改数据上传失败: ' + err.message);
-    } 
+    }
   }
   // 初始化加载数据
   useEffect(() => {
     const initData = async () => {
-      await fetchData();
+      await getData();
       await convertData();
     };
     initData();
@@ -505,13 +589,26 @@ const App = () => {
           </button>
         </span>
 
-          <span className="calculate-controls">
-            <button className="calculate-btn" onClick={calculate}>
-              <i className="fas fa-plus"></i> 求解
-            </button>  
+        <span className="calculate-controls">
+          <button className="calculate-btn" onClick={calculate}>
+            <i className="fas fa-plus"></i> 求解
+          </button>
         </span>
 
+        <span className="restore-controls">
+          <button className="restore-btn" onClick={() => {
+            localStorage.setItem('savedData', '');
+            getData().then(convertData);
+          }}>
+            <i className="fas fa-plus"></i> 还原
+          </button>
+        </span>
 
+        <span className="controls">
+          <button className="btn" onClick={() => { alert(`${progress}% ${calculationStatus}`) }}>
+            <i className="fas fa-plus"></i> 测试（待删除）
+          </button>
+        </span>
       </div>
 
       <div className="timeline-container">
@@ -524,7 +621,7 @@ const App = () => {
           <div className="error">
             <i className="fas fa-exclamation-triangle"></i>
             <p>{error}</p>
-            <button onClick={fetchData} className="retry-btn">
+            <button onClick={getData} className="retry-btn">
               重试
             </button>
           </div>
@@ -540,7 +637,7 @@ const App = () => {
           onDataChange={setFormData}>
 
         </DisturbanceForm>
-        
+
       )}
       <div className="upload-status">
         {uploadingDisturbance && (
@@ -571,14 +668,35 @@ const App = () => {
         {uploadModificationError && (
           <div className="error">
             <p>
-            <i className="fas fa-exclamation-triangle"></i>
-            <span>{uploadModificationError}</span>
-            <button onClick={() => setUploadModificationError(null)} className="cancel-retry-btn">
-              取消
-            </button>
-            <button onClick={() => uploadModification(formData)} className="retry-btn">
-              重试
-            </button>
+              <i className="fas fa-exclamation-triangle"></i>
+              <span>{uploadModificationError}</span>
+              <button onClick={() => setUploadModificationError(null)} className="cancel-retry-btn">
+                取消
+              </button>
+              <button onClick={() => uploadModification(formData)} className="retry-btn">
+                重试
+              </button>
+            </p>
+          </div>
+        )}
+        {calculationStatus === "running" && (
+          <div className="loading">
+            <div className="spinner"></div>
+            <p>正在计算...{progress}</p>
+          </div>
+        )}
+
+        {calculationStatus === "completed" && (
+          <div className="">
+            <div className="spinner"></div>
+            <p>
+              计算完成
+              <button onClick={() => setCalculationStatus('idle')} className="cancel-retry-btn">
+                取消
+              </button>
+              <button onClick={convertUpdatedData} className="retry-btn">
+                更新
+              </button>
             </p>
           </div>
         )}
