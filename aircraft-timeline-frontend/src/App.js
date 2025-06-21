@@ -600,7 +600,7 @@ const App = () => {
   // 初始化加载数据
   useEffect(() => {
     const initData = async () => {
-      await getData();
+      await getData(file);
       await convertData();
     };
     initData();
@@ -676,7 +676,7 @@ const App = () => {
           <div className="error">
             <i className="fas fa-exclamation-triangle"></i>
             <p>{error}</p>
-            <button onClick={getData} className="retry-btn">
+            <button onClick={getData(file)} className="retry-btn">
               重试
             </button>
           </div>
