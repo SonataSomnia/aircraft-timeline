@@ -63,7 +63,6 @@ def handle_disturbance():
         # 验证请求数据
         data = request.get_json()
         required_fields = ['dis', 'dis_time','ind_dis' ,'dis_value']
-        print(data)
         if not all(field in data for field in required_fields):
             return jsonify({"error": "Missing required fields"}), 400
 
@@ -103,7 +102,8 @@ def handle_modification():
         header_1 = ["DEP","ARR","AC","TYPE","FT","DIS","DET","ART","CAP","DEL","COST","DEM","TIC","P1","P2","P1_cost","P2_cost","Flight"]
         header_2 = ["DEP","ARR","AC","TYPE","FT","DIS","DET","ART","CAP","DEL","COST","DEM","TIC","Flight"]
         # 构建CSV内容
-        if not "P1" in data['dataModified']:
+        print(data['dataModified'])
+        if not "P1" in data['dataModified'][0]:
             header=header_2
         else:
             header=header_1
