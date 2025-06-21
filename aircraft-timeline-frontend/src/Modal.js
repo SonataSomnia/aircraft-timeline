@@ -8,7 +8,7 @@ const DIS_OPTIONS = [
   { value: '3', label: '3', indexKey: 'airport' }
 ];
 
-const DisturbanceForm = ({ onSubmit, onClose, initialData, onDataChange }) => {
+const DisruptionForm = ({ onSubmit, onClose, initialData, onDataChange }) => {
   const [formData, setFormData] = useState(initialData || {
     dis: '1',
     ind_dis: '',
@@ -24,7 +24,7 @@ const DisturbanceForm = ({ onSubmit, onClose, initialData, onDataChange }) => {
 
   useEffect(() => {
     if (formData.dis === '2') {
-      setFormData(prev => ({...prev, dis_value: null}));
+      setFormData(prev => ({...prev, dis_value: 0}));
     }
   }, [formData.dis]);
 
@@ -290,6 +290,6 @@ export {
   FlightCard,
   minuteToHhmm,
   setFlightCard,
-  DisturbanceForm,
+  DisruptionForm,
   EditForm
 };

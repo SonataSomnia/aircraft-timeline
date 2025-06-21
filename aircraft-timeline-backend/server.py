@@ -57,8 +57,8 @@ def get_aircraft_data():
             "error": f"Error reading data: {str(e)}"
         }), 500
 
-@app.route('/api/submit_disturbance', methods=['POST'])
-def handle_disturbance():
+@app.route('/api/submit_disruption', methods=['POST'])
+def handle_disruption():
     """处理扰动数据提交并保存到CSV文件"""
     try:
         # 验证请求数据
@@ -82,7 +82,7 @@ def handle_disturbance():
         
         return jsonify({
             "status": "success",
-            "message": "Disturbance data saved successfully"
+            "message": "Disruption data saved successfully"
         }), 200
 
     except Exception as e:

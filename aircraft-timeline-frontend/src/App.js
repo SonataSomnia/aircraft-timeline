@@ -9,7 +9,7 @@ import {
   FlightCard,
   minuteToHhmm,
   setFlightCard,
-  DisturbanceForm,
+  DisruptionForm,
   EditForm
 } from './Modal';
 var data = [];
@@ -21,11 +21,11 @@ const App = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [calculationStatus, setCalculationStatus] = useState('idle');
-  const [uploadingDisturbance, setUploadingDisturbance] = useState(false);
-  const [uploadDisturbanceError, setUploadDisturbanceError] = useState(null);
+  const [uploadingDisruption, setUploadingDisruption] = useState(false);
+  const [uploadDisruptionError, setUploadDisruptionError] = useState(null);
   const [uploadingModification, setUploadingModification] = useState(false);
   const [uploadModificationError, setUploadModificationError] = useState(null);
-  const [showDisturbanceForm, setShowDisturbanceForm] = useState(false);
+  const [showDisruptionForm, setShowDisruptionForm] = useState(false);
   const [showInstructions, setShowInstructions] = useState(false);
   const [formData, setFormData] = useState(null);
   const [showEditForm, setShowEditForm] = useState(false);
@@ -508,8 +508,8 @@ const App = () => {
     }
   };
 
-  const uploadDisturbance = () => {
-    setShowDisturbanceForm(true);
+  const uploadDisruption = () => {
+    setShowDisruptionForm(true);
     // 保留之前填写的表单数据
     if (!formData) {
       setFormData({
@@ -521,11 +521,11 @@ const App = () => {
     }
   };
 
-  const handleDisturbanceSubmit = async (formData) => {
+  const handleDisruptionSubmit = async (formData) => {
     try {
-      setUploadingDisturbance(true);
-      setUploadDisturbanceError(null);
-      const response = await fetch('http://localhost:5000/api/submit_disturbance', {
+      setUploadingDisruption(true);
+      setUploadDisruptionError(null);
+      const response = await fetch('http://localhost:5000/api/submit_disruption', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -539,12 +539,12 @@ const App = () => {
 
       const result = await response.json();
       console.log('提交成功:', result);
-      setUploadDisturbanceError(null);
+      setUploadDisruptionError(null);
     } catch (err) {
-      setUploadDisturbanceError('扰动提交失败: ' + err.message);
+      setUploadDisruptionError('扰动提交失败: ' + err.message);
     } finally {
-      setUploadingDisturbance(false);
-      setShowDisturbanceForm(false);
+      setUploadingDisruption(false);
+      setShowDisruptionForm(false);
     }
   };
 
@@ -639,8 +639,8 @@ const App = () => {
           </button>
         </span>
 
-        <span className="upload-disturbance-controls">
-          <button className="upload-disturbance-btn" onClick={uploadDisturbance}>
+        <span className="upload-disruption-controls">
+          <button className="upload-disruption-btn" onClick={uploadDisruption}>
             <i className="fas fa-plus"></i> 编辑扰动
           </button>
         </span>
@@ -686,14 +686,14 @@ const App = () => {
           <div ref={timelineContainerRef} className="timeline" />
         )}
       </div>
-      {showDisturbanceForm && (
-        <DisturbanceForm
-          onSubmit={handleDisturbanceSubmit}
-          onClose={() => setShowDisturbanceForm(false)}
+      {showDisruptionForm && (
+        <DisruptionForm
+          onSubmit={handleDisruptionSubmit}
+          onClose={() => setShowDisruptionForm(false)}
           initialData={formData}
           onDataChange={setFormData}>
 
-        </DisturbanceForm>
+        </DisruptionForm>
 
       )}      
       {showEditForm && (
@@ -708,20 +708,20 @@ const App = () => {
 
       )}
       <div className="upload-status">
-        {uploadingDisturbance && (
+        {uploadingDisruption && (
           <div className="loading">
             <div className="spinner"></div>
             <p>正在提交扰动数据...</p>
           </div>
         )}
-        {uploadDisturbanceError && (
+        {uploadDisruptionError && (
           <div className="error"><p>
             <i className="fas fa-exclamation-triangle"></i>
-            <span>{uploadDisturbanceError}</span>
-            <button onClick={() => setUploadDisturbanceError(null)} className="cancel-retry-btn">
+            <span>{uploadDisruptionError}</span>
+            <button onClick={() => setUploadDisruptionError(null)} className="cancel-retry-btn">
               取消
             </button>
-            <button onClick={() => handleDisturbanceSubmit(formData)} className="retry-btn">
+            <button onClick={() => handleDisruptionSubmit(formData)} className="retry-btn">
               重试
             </button>
           </p>
