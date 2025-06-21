@@ -9,7 +9,7 @@ CORS(app, resources={r"/api/*": {"origins": "*", "methods": ["GET", "POST"]}})  
 
 # 数据文件路径（用户可根据需要修改）
 DATA_FILE = os.path.join(os.path.dirname(__file__), 'data', 'data.csv')
-data_map=dict(original="data.csv",modified="data_modified.csv",calculated="data_calculated.csv")
+data_map=dict(original="cost_93.csv",modified="data_modified.csv",calculated="data_calculated.csv")
 # 计算任务状态跟踪
 calculation_status = "idle"
 calculation_progress = 0

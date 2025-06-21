@@ -173,7 +173,7 @@ const DisturbanceForm = ({ onSubmit, onClose, initialData, onDataChange }) => {
   );
 };
 
-const FlightCard = ({ color, airline, flightType, SDT, SAT, from, to, overlap }) => (
+const FlightCard = ({ color, flightType, DET, ART, DEP, ARR, overlap }) => (
     <div className="flight-card-wrapper">
         <div
             className="top-bar"
@@ -193,15 +193,14 @@ const FlightCard = ({ color, airline, flightType, SDT, SAT, from, to, overlap })
             }}
         >
             <div className="flight-info" >
-                <span className="airline">{airline}</span>
                 <span className="type">✈️ {flightType}</span>
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize:'0.66em'}}>
-                    <span className="SDT">{SDT}</span>
-                    <span className="SAT">{SAT}</span>
+                    <span className="DET">{DET}</span>
+                    <span className="ART">{ART}</span>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between' , fontSize: '0.66em' }}>
-                    <span className="from">{from}</span>
-                    <span className="to">{to}</span>
+                    <span className="DEP">{DEP}</span>
+                    <span className="ARR">{ARR}</span>
                 </div>
             </div>
         </div>
@@ -210,9 +209,7 @@ const FlightCard = ({ color, airline, flightType, SDT, SAT, from, to, overlap })
 
 const minuteToHhmm = (minute) => {
     let hhmm = Math.floor(minute / 60) * 100 + minute % 60;
-    if (hhmm >= 2400) {
-        hhmm -= 2400;
-    }
+    hhmm=hhmm%2400;
     return hhmm.toString().padStart(4, '0'); // 使用 padStart 补全4位前导零
 };
 
@@ -220,12 +217,11 @@ function setFlightCard(item){
     item.content = (
         <FlightCard
             color={item.color}
-            airline={item.Reporting_Airline}
-            flightType={item.ACtype}
-            SDT={minuteToHhmm(Math.floor(item.SDT / 60))}
-            SAT={minuteToHhmm(Math.floor(item.SAT / 60))}
-            from={item.Form}
-            to={item.To}
+        flightType={item.TYPE}
+            DET={minuteToHhmm(item.DET)}
+            ART={minuteToHhmm(item.ART)}
+            DEP={item.DEP}
+            ARR={item.ARR}
             overlap={item.overlap}
         />
     )

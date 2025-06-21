@@ -50,9 +50,9 @@ const App = () => {
 
   const timelineBaseDate = new Date(2023, 0, 1);
   const timelineStart = new Date(timelineBaseDate);
-  timelineStart.setSeconds(timelineBaseDate.getSeconds() + 30000);
+  timelineStart.setSeconds(timelineBaseDate.getSeconds());
   const timelineEnd = new Date(timelineBaseDate);
-  timelineEnd.setSeconds(timelineBaseDate.getSeconds() + 129600);
+  timelineEnd.setSeconds(timelineBaseDate.getSeconds()+300000);
 
   const getData = async () => {
     try {
@@ -118,28 +118,27 @@ const App = () => {
     // 转换航班数据为时间轴格式
     const combinedData = [...data, ...dataModified];
     const transformedItems = combinedData.flatMap((item) => {
-      const originalGroupId = parseInt(item.Aircraft, 10);
+      const originalGroupId = parseInt(item.AC, 10);
       const backupGroupId = originalGroupId + 0.5;
-      const color = stringToColor(item.Flight, item.Aircraft, item.status === 'original' ? 1 : 0.5);
+      const color = stringToColor(item.Flight, item.AC, item.status === 'original' ? 1 : 0.5);
       const timelineItem = {
         ...item,
         id: item.status === 'original' ?
-          `${item.IATA_CODE_Reporting_Airline}-${item.Flight}` :
-          `${item.IATA_CODE_Reporting_Airline}-${item.Flight}-modified`,
+          `${item.TYPE}-${item.Flight}` :
+          `${item.TYPE}-${item.Flight}-modified`,
         content: (
           <FlightCard
             color={color}
-            airline={item.Reporting_Airline}
-            flightType={item.ACtype}
-            SDT={minuteToHhmm(Math.floor(item.SDT / 60))}
-            SAT={minuteToHhmm(Math.floor(item.SAT / 60))}
-            from={item.Form}
-            to={item.To}
+            flightType={item.TYPE}
+            DET={minuteToHhmm(item.DET)}
+            ART={minuteToHhmm(item.ART)}
+            DEP={item.DEP}
+            ARR={item.ARR}
             overlap={false}
           />
         ),
-        start: new Date(timelineBaseDate.getTime() + item.SDT * 1000),
-        end: new Date(timelineBaseDate.getTime() + item.SAT * 1000),
+        start: new Date(timelineBaseDate.getTime() + item.DET*60 * 1000),
+        end: new Date(timelineBaseDate.getTime() + item.ART *60* 1000),
         group: item.status === 'original' ? originalGroupId : backupGroupId,
         className: item.status === 'original' ? 'flight-item' : 'flight-item-modified',
         style: `background-color: #ffffff00;`,
@@ -158,7 +157,7 @@ const App = () => {
     
 
     // 按飞机型号创建分组（原始+备份）
-    const aircraftTypes = [...new Set(data.map(item => item.Aircraft))];
+    const aircraftTypes = [...new Set(data.map(item => item.AC))];
     const transformedGroups = aircraftTypes.flatMap(aircraft => {
       const originalId = parseInt(aircraft, 10);
       return [
@@ -192,25 +191,24 @@ const App = () => {
   const convertUpdatedData = async () => {
     const data = await fetchData('calculated');
     const transformedItems = data.flatMap((item) => {
-      const originalGroupId = parseInt(item.Aircraft, 10);
-      const color = stringToColor(item.Flight, item.Aircraft, 1);
+      const originalGroupId = parseInt(item.AC, 10);
+      const color = stringToColor(item.Flight, item.AC, 1);
       const timelineItem = {
         ...item,
-        id: `${item.IATA_CODE_Reporting_Airline}-${item.Flight}`,
+        id: `${item.TYPE}-${item.Flight}`,
         content: (
           <FlightCard
             color={color}
-            airline={item.Reporting_Airline}
-            flightType={item.ACtype}
-            SDT={minuteToHhmm(Math.floor(item.SDT / 60))}
-            SAT={minuteToHhmm(Math.floor(item.SAT / 60))}
-            from={item.Form}
-            to={item.To}
+            flightType={item.TYPE}
+            DET={minuteToHhmm(item.DET)}
+            ART={minuteToHhmm(item.ART)}
+            DEP={item.DEP}
+            ARR={item.ARR}
             overlap={false}
           />
         ),
-        start: new Date(timelineBaseDate.getTime() + item.SDT * 1000),
-        end: new Date(timelineBaseDate.getTime() + item.SAT * 1000),
+        start: new Date(timelineBaseDate.getTime() + item.DET * 60 * 1000),
+        end: new Date(timelineBaseDate.getTime() + item.ART * 60 * 1000),
         group:  originalGroupId,
         className: 'flight-item',
         style: `background-color: #ffffff00;`,
@@ -246,8 +244,8 @@ const App = () => {
       selectable: true,
       showCurrentTime: true,
       clickToUse: true,
-      zoomMin: 1000 * 60 * 5, // 5分钟
-      zoomMax: 1000 * 60 * 60 * 12, // 24小时
+      zoomMin: 1000 * 60 * 60, // 5分钟
+      zoomMax: 1000 * 60 * 60 * 72, // 24小时
       moveable: true,
       timeAxis: {
         scale: 'minute',
@@ -415,12 +413,12 @@ const App = () => {
     console.log('moving', item.start, item.end, item.id, item.group);
     if (record) {
       // 更新时间数据
-      record.SDT = dateToMinute(item.start) * 60;
-      record.SAT = dateToMinute(item.end) * 60;
-      item.SDT = record.SDT;
-      item.SAT = record.SAT;
+      record.DET = dateToMinute(item.start);
+      record.ART = dateToMinute(item.end) ;
+      item.DET = record.ART;
+      item.DET = record.ART;
       setFlightCard(item);
-      record.Aircraft = Math.floor(item.group).toString();
+      record.AC = Math.floor(item.group).toString();
       localStorage.setItem('savedData', JSON.stringify({ data, dataModified }));
 
     }
@@ -430,10 +428,10 @@ const App = () => {
 
   const findData=(item)=>{
     // 解析航班号和状态
-    const [airline, flight, status] = item.id.split('-');
+    const [type, flight, status] = item.id.split('-');
     const targetArray = dataModified
     const record = targetArray.find(r =>
-      r.IATA_CODE_Reporting_Airline === airline &&
+      r.TYPE === type &&
       r.Flight === parseInt(flight)
     );
     return record
