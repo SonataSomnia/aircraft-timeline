@@ -61,7 +61,7 @@ const App = () => {
       setLoading(true);
       setError(null);
       const savedData = localStorage.getItem('savedData');
-      if (file===undefined && savedData) {
+      if (file===undefined || savedData) {
         data = JSON.parse(savedData).data;
         dataModified = JSON.parse(savedData).dataModified;
         console.log('从本地读取缓存');
@@ -191,9 +191,9 @@ const App = () => {
     setLoading(false);
   }
   const convertUpdatedData = async () => {
-    const data = await fetchData('new_schedule.csv');
-    console.log(data);
-    const transformedItems = data.flatMap((item) => {
+    const newData = await fetchData('new_schedule.csv');
+    console.log(newData);
+    const transformedItems = newData.flatMap((item) => {
       const originalGroupId = parseInt(item.AC, 10);
       const color = stringToColor(item.Flight, item.AC, 1);
       const timelineItem = {
@@ -224,8 +224,8 @@ const App = () => {
       };
       return timelineItem;
     });
-
-    items.update(transformedItems);
+    items.remove(data.map(datum => `${datum.TYPE}-${datum.Flight}`));
+    items.add(transformedItems);
     setCalculationStatus('idle')
     // groups = new DataSet(transformedGroups);
     // const initOverlapIntervals = transformedGroups.flatMap(group => {
@@ -392,15 +392,17 @@ const App = () => {
       item.overlap = false;
     }
     items.update(item);
+    const oldGroup = oldItem.group;
+    const newGroup = item.group;
 
     items.remove(items.get({
-      filter: item => item.className === 'overlap-interval'
+      filter: item => item.className === 'overlap-interval' && (item.group === oldGroup || item.group === newGroup)
     }).map(item => item.id));
 
-    if (oldItem.group === item.group) {
-      items.add(updateOverlap([item.group]));
+    if (oldGroup === newGroup) {
+      items.add(updateOverlap([oldGroup]));
     } else {
-      items.add(updateOverlap([oldItem.group, item.group]));
+      items.add(updateOverlap([oldGroup, newGroup]));
     }
 
     // 将时间转换为相对于基准时间的分钟数
@@ -418,10 +420,11 @@ const App = () => {
       // 更新时间数据
       record.DET = dateToMinute(item.start);
       record.ART = dateToMinute(item.end) ;
-      item.DET = record.ART;
-      item.DET = record.ART;
+      item.DET = record.DET;
+      item.ART = record.ART;
       setFlightCard(item);
       record.AC = Math.floor(item.group).toString();
+      item.AC = record.AC
       localStorage.setItem('savedData', JSON.stringify({ data, dataModified }));
       setModified(true);
     }
@@ -432,16 +435,21 @@ const App = () => {
   const findData=(item)=>{
     // 解析航班号和状态
     const [type, flight, status] = item.id.split('-');
-    const targetArray = dataModified
+    const targetArray = dataModified;
     const record = targetArray.find(r =>
-      r.TYPE === type &&
+      r.TYPE == type &&
       r.Flight === parseInt(flight)
     );
+    console.log(record)
     return record
   }
   // 处理项目更新
 
   const handleItemUpdated = (item, callback) => {
+    if(item.status==="original"){
+      callback(null);
+      return;
+    }
     const record = findData(item);
     if (record) {
       setSelectedItem(item);
@@ -453,12 +461,20 @@ const App = () => {
 
   const handleFormSubmit = (formData) => {
     const record = findData(selectedItem);
+    const oldGroup=record.group;
     Object.entries(formData).forEach(([key, value]) => {
       if (key !== 'id' && key !== 'status') {
-        record[key] = value;
+        if (["AC", "FT", "DIS", "DET", "ART", "CAP", "DEL", "COST", "DEM", "TIC", "P1", "P2", "P1_cost", "P2_cost"].includes(key)){
+          record[key] = parseInt(value, 10);
+        }
+        else{
+          record[key] = value;
+        }
+        selectedItem[key] = record[key];
+
       }
     });
-
+    
     // 更新本地存储
     localStorage.setItem('savedData', JSON.stringify({ data, dataModified }));
     setModified(true);
@@ -466,17 +482,31 @@ const App = () => {
     selectedItem.content = (
       <FlightCard
         color={selectedItem.color}
-        airline={record.Reporting_Airline}
-        flightType={record.ACtype}
-        SDT={minuteToHhmm(Math.floor(record.SDT / 60))}
-        SAT={minuteToHhmm(Math.floor(record.SAT / 60))}
-        from={record.Form}
-        to={record.To}
+        flightType={record.TYPE}
+        DET={minuteToHhmm(record.DET)}
+        ART={minuteToHhmm(record.ART)}
+        DEP={record.DEP}
+        ARR={record.ARR}
         overlap={selectedItem.overlap}
       />
     );
-    items.update(selectedItem);
+    selectedItem.start = new Date(timelineBaseDate.getTime() + record.DET * 60 * 1000);
+    selectedItem.end = new Date(timelineBaseDate.getTime() + record.ART * 60 * 1000);
+    selectedItem.group = parseInt(record.AC, 10)+0.5;
+    record.group = selectedItem.group;
+    const newGroup = record.group;
 
+
+    console.log(record, selectedItem);
+    items.update(selectedItem);
+    items.remove(items.get({
+      filter: item => item.className === 'overlap-interval' && (item.group === oldGroup || item.group === newGroup)
+    }).map(item => item.id));
+    if (newGroup === oldGroup) {
+      items.add(updateOverlap([oldGroup]));
+    } else {
+      items.add(updateOverlap([newGroup, oldGroup]));
+    }
     // 关闭表单
     setShowEditForm(false);
   };

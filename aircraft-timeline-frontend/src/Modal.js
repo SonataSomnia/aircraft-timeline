@@ -188,7 +188,7 @@ const FlightCard = ({ color, flightType, DET, ART, DEP, ARR, overlap }) => (
         <div
             className="flight-card"
             style={{
-                backgroundColor: overlap ? '#ff666699' : 'white',
+                backgroundColor: overlap ? '#ffaaaaee' : 'white',
                 border: `2px solid ${color}`,
                 borderRadius: '8px',
                 padding: '6px',
@@ -219,7 +219,7 @@ function setFlightCard(item){
     item.content = (
         <FlightCard
             color={item.color}
-        flightType={item.TYPE}
+            flightType={item.TYPE}
             DET={minuteToHhmm(item.DET)}
             ART={minuteToHhmm(item.ART)}
             DEP={item.DEP}
@@ -264,7 +264,7 @@ const EditForm = ({ item, onSubmit, onClose }) => {
         <h3>编辑航班属性: {item.id}</h3>
         <form onSubmit={handleSubmit}>
           {Object.entries(item).map(([key, value]) => {
-            if (['id', 'status', 'content', 'group', 'className', 'style', 'editable', 'color','overlap'].includes(key)) return null;
+            if (['id', 'status', 'content', 'group', 'className', 'style', 'editable', 'color','overlap','Flight','start','end'].includes(key)) return null;
             return (
               <div className="form-group" key={key}>
                 <label>{key}:</label>
