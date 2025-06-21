@@ -11,7 +11,7 @@ const DIS_OPTIONS = [
 const DisturbanceForm = ({ onSubmit, onClose, initialData, onDataChange }) => {
   const [formData, setFormData] = useState(initialData || {
     dis: '1',
-    dis_ind: 'flight',
+    ind_dis: '',
     dis_time: '',
     dis_value: ''
   });
@@ -77,7 +77,7 @@ const DisturbanceForm = ({ onSubmit, onClose, initialData, onDataChange }) => {
                       setFormData({
                         ...formData,
                         dis: e.target.value,
-                        dis_ind: selected.indexKey
+                        ind_dis: selected.indexKey
                       });
                     }}
                   >
@@ -88,13 +88,15 @@ const DisturbanceForm = ({ onSubmit, onClose, initialData, onDataChange }) => {
                 </td>
               </tr>
               <tr>
-                <td style={{ padding: '8px', borderBottom: '1px solid #eee' }}>指标 (dis_ind):</td>
+                <td style={{ padding: '8px', borderBottom: '1px solid #eee' }}>指标 (ind_dis):</td>
                 <td style={{ padding: '8px', borderBottom: '1px solid #eee' }}>
                   <input
                     type="text"
-                    readOnly
+                    required
+                    pattern={formData.dis === '3' ? undefined : "[0-9]+"}
                     style={{ width: '100%', padding: '6px', backgroundColor: '#f5f5f5' }}
-                    value={formData.dis_ind}
+                    value={formData.ind_dis}
+                    onChange={(e) => setFormData({ ...formData, ind_dis: e.target.value })}
                   />
                 </td>
               </tr>

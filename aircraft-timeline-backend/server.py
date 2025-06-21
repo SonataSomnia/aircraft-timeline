@@ -62,7 +62,8 @@ def handle_disturbance():
     try:
         # 验证请求数据
         data = request.get_json()
-        required_fields = ['dis', 'dis_ind', 'dis_time', 'dis_value']
+        required_fields = ['dis', 'dis_time','ind_dis' ,'dis_value']
+        print(data)
         if not all(field in data for field in required_fields):
             return jsonify({"error": "Missing required fields"}), 400
 
@@ -76,8 +77,8 @@ def handle_disturbance():
         # 写入数据
         file_exists = os.path.exists(csv_path)
         with open(csv_path, 'w', newline='', encoding='utf-8') as f:
-            f.write('dis,dis_ind,dis_time,dis_value\n')
-            f.write(f"{data['dis']},{data['dis_ind']},{data['dis_time']},{data['dis_value']}\n")
+            f.write('dis,dis_time,ind_dis,dis_value\n')
+            f.write(f"{data['dis']},{data['dis_time']},{data['ind_dis']},{data['dis_value']}\n")
         
         return jsonify({
             "status": "success",

@@ -511,7 +511,7 @@ const App = () => {
     if (!formData) {
       setFormData({
         dis: '1',
-        dis_ind: 'flight',
+        ind_dis: 'flight',
         dis_time: '',
         dis_value: ''
       });
