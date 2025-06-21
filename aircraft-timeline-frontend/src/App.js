@@ -16,6 +16,7 @@ var data = [];
 var dataModified = [];
 var items = []
 var groups = []
+const FILE_OPTIONS = ['cost_93.csv', 'cost_573.csv', 'cost_911.csv', 'cost_1079.csv', 'cost_1359.csv']
 const App = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -30,6 +31,7 @@ const App = () => {
   const [formData, setFormData] = useState(null);
   const [showEditForm, setShowEditForm] = useState(false);
   const [selectedItem, setSelectedItem] = useState(null);
+  const [file, setFile] = useState('cost_93.csv');
   const timelineRef = useRef(null);
   const timelineContainerRef = useRef(null);
 
@@ -54,18 +56,18 @@ const App = () => {
   const timelineEnd = new Date(timelineBaseDate);
   timelineEnd.setSeconds(timelineBaseDate.getSeconds()+300000);
 
-  const getData = async () => {
+  const getData = async (file) => {
     try {
       setLoading(true);
       setError(null);
       const savedData = localStorage.getItem('savedData');
-      if (savedData) {
+      if (file===undefined && savedData) {
         data = JSON.parse(savedData).data;
         dataModified = JSON.parse(savedData).dataModified;
         console.log('从本地读取缓存');
       }
       else {
-        data = await fetchData('original');
+        data = await fetchData(file);
         dataModified = data.map(item => ({
           ...item,
           status: `modified`,
@@ -618,6 +620,18 @@ const App = () => {
           justifyContent: 'normal'
         }
       }>
+        <select
+          value={file}
+          onChange={(e) => {
+            setFile(e.target.value);
+            localStorage.setItem('savedData', '');
+            getData(e.target.value).then(convertData);
+          }}
+        >
+          {FILE_OPTIONS.map(option => (
+            <option value={option}>{option}</option>
+          ))}
+        </select>
         <span className="upload-modification-controls">
           <button className="upload-modification-btn" onClick={uploadModification}>
             <i className="fas fa-plus"></i> 上传更改
@@ -639,7 +653,7 @@ const App = () => {
         <span className="restore-controls">
           <button className="restore-btn" onClick={() => {
             localStorage.setItem('savedData', '');
-            getData().then(convertData);
+            getData(file).then(convertData);
           }}>
             <i className="fas fa-plus"></i> 还原
           </button>

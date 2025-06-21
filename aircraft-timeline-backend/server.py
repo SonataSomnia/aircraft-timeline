@@ -9,7 +9,7 @@ CORS(app, resources={r"/api/*": {"origins": "*", "methods": ["GET", "POST"]}})  
 
 # 数据文件路径（用户可根据需要修改）
 DATA_FILE = os.path.join(os.path.dirname(__file__), 'data', 'data.csv')
-data_map=dict(original="cost_93.csv",modified="data_modified.csv",calculated="data_calculated.csv")
+data_map=dict(original="cost_573.csv",modified="data_modified.csv",calculated="data_calculated.csv")
 # 计算任务状态跟踪
 calculation_status = "idle"
 calculation_progress = 0
@@ -24,7 +24,7 @@ def get_aircraft_data():
     """
     try:
         # 从请求参数获取文件名，默认为原始数据文件
-        filename = data_map[request.args.get('file', 'original')]
+        filename = request.args.get('file', "cost_573.csv")
         data_dir = os.path.join(os.path.dirname(__file__), 'data')
         
         # 构建安全路径（防止路径遍历攻击）
@@ -99,11 +99,14 @@ def handle_modification():
         if not data or 'dataModified' not in data:
             return jsonify({"error": "Missing dataModified field"}), 400
 
-        # 获取模板文件的表头顺序
-        with open(DATA_FILE, 'r', encoding='utf-8') as f:
-            header = f.readline().strip().split(',')
-
+        # 表头顺序
+        header_1 = ["DEP","ARR","AC","TYPE","FT","DIS","DET","ART","CAP","DEL","COST","DEM","TIC","P1","P2","P1_cost","P2_cost","Flight"]
+        header_2 = ["DEP","ARR","AC","TYPE","FT","DIS","DET","ART","CAP","DEL","COST","DEM","TIC","Flight"]
         # 构建CSV内容
+        if not "P1" in data['dataModified']:
+            header=header_2
+        else:
+            header=header_1
         csv_content = []
         csv_content.append(','.join(header))  # 使用模板文件的表头顺序
         
