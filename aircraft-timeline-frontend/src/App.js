@@ -191,7 +191,8 @@ const App = () => {
     setLoading(false);
   }
   const convertUpdatedData = async () => {
-    const data = await fetchData('calculated');
+    const data = await fetchData('new_schedule.csv');
+    console.log(data);
     const transformedItems = data.flatMap((item) => {
       const originalGroupId = parseInt(item.AC, 10);
       const color = stringToColor(item.Flight, item.AC, 1);
@@ -490,7 +491,7 @@ const App = () => {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ dataModified: JSON.parse(localStorage.getItem('savedData')).dataModified }),
+        body: JSON.stringify({ file:file,dataModified: JSON.parse(localStorage.getItem('savedData')).dataModified }),
       });
 
       if (!response.ok) {

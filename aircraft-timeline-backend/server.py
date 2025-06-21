@@ -72,7 +72,7 @@ def handle_disturbance():
         os.makedirs(data_dir, exist_ok=True)
         
         # CSV文件路径
-        csv_path = os.path.join(data_dir, 'dis.csv')
+        csv_path = os.path.join(data_dir, 'disruption.csv')
         
         # 写入数据
         file_exists = os.path.exists(csv_path)
@@ -118,7 +118,7 @@ def handle_modification():
         # 保存文件
         data_dir = os.path.join(os.path.dirname(__file__), 'data')
         os.makedirs(data_dir, exist_ok=True)
-        csv_path = os.path.join(data_dir, 'data_modified.csv')
+        csv_path = os.path.join(data_dir, f"{os.path.splitext(data['file'])[0]}_modified.csv")
         
         with open(csv_path, 'w', newline='', encoding='utf-8') as f:
             f.write('\n'.join(csv_content))
