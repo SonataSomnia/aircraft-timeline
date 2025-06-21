@@ -1,6 +1,8 @@
+import subprocess
 from flask import Flask, jsonify, request
 from flask_cors import CORS
 import os
+import sys
 import time
 import threading
 from flask import Response, stream_with_context
@@ -12,7 +14,6 @@ DATA_FILE = os.path.join(os.path.dirname(__file__), 'data', 'data.csv')
 data_map=dict(original="cost_573.csv",modified="data_modified.csv",calculated="data_calculated.csv")
 # 计算任务状态跟踪
 calculation_status = "idle"
-calculation_progress = 0
 calculation_lock = threading.Lock()
 
 
@@ -136,44 +137,57 @@ def handle_modification():
 
 
 def calculate_task():
-    """模拟长时间计算任务"""
-    global calculation_progress, calculation_status
+    """执行恢复计算任务"""
+    global calculation_status
     try:
         calculation_status = "running"
-        calculation_progress = 0
         
-        for i in range(10):
-            time.sleep(1)
-            calculation_progress = (i + 1) * 10
-            print(f"计算进度: {calculation_progress}%")  # 后台日志输出进度
-            
-        # 最终状态更新需要原子操作
-        with calculation_lock:
-            calculation_status = "completed"
-            calculation_progress = 100
+        # 使用子进程执行recovery621.py
+        recovery_script = os.path.join(os.path.dirname(__file__), 'recovery621.py')
+        number=filename.split(".")[0].split("_")[1]
+        print(number)
+        if is_modified:
+            args=[number,"-n"]
+        else:
+            args=[number]
+        command = [sys.executable,recovery_script]+args
+        process = subprocess.run(command,
+                                 capture_output=True,
+                                 text=True)
+        
+        # 等待子进程完成
+        stdout=process.stdout
+        stderr=process.stderr
+        
+        # 检查执行结果
+        if process.returncode == 0:
+            with calculation_lock:
+                calculation_status = "completed"
+            print(stdout)
+        else:
+            error_msg = stderr or "Unknown error"
+            with calculation_lock:
+                calculation_status = f"error: {error_msg}"
+                
     except Exception as e:
         with calculation_lock:
             calculation_status = f"error: {str(e)}"
-            calculation_progress = -1
         app.logger.error(f"计算任务失败: {str(e)}")
-    except Exception as e:
-        calculation_status = "error"
-        print(f"计算任务异常: {str(e)}")
-    finally:
-        # 确保释放锁资源
-        pass
 
 @app.route('/api/calculate', methods=['POST'])
 def start_calculation():
+    global filename ,is_modified
+    data = request.get_json()
+    filename = data['file']
+    is_modified = data['is_modified']
     """启动计算任务"""
-    global calculation_status, calculation_progress
+    global calculation_status
     with calculation_lock:
         if calculation_status == "running":
             return jsonify({"status": "error", "message": "计算任务正在进行中"}), 409
         
         # 立即更新状态防止重复触发
         calculation_status = "running"
-        calculation_progress = 0
             
         # 在锁外启动线程以避免阻塞
         thread = threading.Thread(target=calculate_task)
@@ -192,10 +206,10 @@ def event_stream():
         while True:
             with calculation_lock:
                 status = calculation_status
-                progress = calculation_progress
             
             # SSE格式要求
-            event_data = f"data: {{\"status\": \"{status}\", \"progress\": {progress}, \"timestamp\": {time.time()}}}\n\n"
+            event_data = f"data: {{\"status\": \"{status}\", \"timestamp\": {time.time()}}}\n\n"
+            print(event_data)
             yield event_data
             
             if status == "completed" or "error" in status:

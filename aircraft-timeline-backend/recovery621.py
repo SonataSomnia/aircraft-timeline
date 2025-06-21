@@ -1,5 +1,8 @@
 import json
 from datetime import datetime
+import os
+import sys
+import argparse
 import time
 import random
 import pandas as pd
@@ -42,7 +45,8 @@ def get_PDC_r(R):
     return PDC
 def get_initial_solution(datanumber): # Flight 要按时间顺序来
     # get R
-    f = pd.read_csv(f"./cost_{datanumber}.csv",header = 0)
+    file_path = os.path.join(base_path, f"cost_{datanumber}.csv")
+    f = pd.read_csv(file_path, header=0)
     route = f.groupby("AC").agg({"Flight":list}).reset_index()
     index_R = route.apply(lambda x :x.AC, axis =1)
     R = route.set_index(keys = index_R)["Flight"].to_dict()
@@ -595,7 +599,7 @@ def build_new_table(df_o,R,param):
             row["DET"] = ADT[j]
             row["AC"] = i
             table_A = pd.concat([table_A, row], ignore_index=True)
-    table_A.to_csv('new_schedule.csv', index=False)                        
+    table_A.to_csv(os.path.join(base_path,'new_schedule.csv'), index=False)                        
 
 def process_disruption_csv(file_path: str) -> pd.DataFrame:
     # 读取数据
@@ -621,10 +625,18 @@ def process_disruption_csv(file_path: str) -> pd.DataFrame:
     return df
 
 if __name__ == '__main__':
-    num = 1359
-
+    parser=argparse.ArgumentParser()
+    parser.add_argument("number",type=int)
+    parser.add_argument("-n",action="store_true",help="是否使用前端修改后的数据")
+    args=parser.parse_args()
+    num = args.number
     t1 = time.time()
-    param = Param(f'./cost_{num}.csv')
+    base_path = os.path.join(os.path.dirname(__file__), 'data')
+    if(args.n):
+        cost_file = os.path.join(base_path, f'cost_{num}_modified.csv')
+    else:
+        cost_file = os.path.join(base_path, f'cost_{num}.csv')        
+    param = Param(cost_file)
     CON = param.CON  # 直接拿到 CON 矩阵
     R = get_initial_solution(num)
     t = 1
@@ -636,7 +648,8 @@ if __name__ == '__main__':
     del_flight = []
     del_cycle = {key: [] for key in param.Oj.values()}
     benr ={} 
-    dis_df = process_disruption_csv('./disruption.csv')
+    dis_file = os.path.join(base_path, 'disruption.csv')
+    dis_df = process_disruption_csv(dis_file)
     for index, row in dis_df.iterrows():
         dis = row['dis']
         dis_time = row['dis_time']
@@ -659,7 +672,7 @@ if __name__ == '__main__':
             R,benr = dis_airport(R,param,ind_dis,dis_time,dis_value)
     print(benr)
     print(sum(benr.values()))
-    df_o = pd.read_csv(f'./cost_{num}.csv')
+    df_o = pd.read_csv(os.path.join(base_path, f'cost_{num}.csv'))
     build_new_table(df_o,R,param)
     print(time.time()-t1)
 

@@ -21,7 +21,6 @@ const App = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [calculationStatus, setCalculationStatus] = useState('idle');
-  const [progress, setProgress] = useState(0);
   const [uploadingDisturbance, setUploadingDisturbance] = useState(false);
   const [uploadDisturbanceError, setUploadDisturbanceError] = useState(null);
   const [uploadingModification, setUploadingModification] = useState(false);
@@ -31,6 +30,7 @@ const App = () => {
   const [formData, setFormData] = useState(null);
   const [showEditForm, setShowEditForm] = useState(false);
   const [selectedItem, setSelectedItem] = useState(null);
+  const [modified, setModified] = useState(false);
   const [file, setFile] = useState('cost_93.csv');
   const timelineRef = useRef(null);
   const timelineContainerRef = useRef(null);
@@ -423,7 +423,7 @@ const App = () => {
       setFlightCard(item);
       record.AC = Math.floor(item.group).toString();
       localStorage.setItem('savedData', JSON.stringify({ data, dataModified }));
-
+      setModified(true);
     }
 
     callback(item);
@@ -461,7 +461,7 @@ const App = () => {
 
     // 更新本地存储
     localStorage.setItem('savedData', JSON.stringify({ data, dataModified }));
-
+    setModified(true);
     // 更新时间轴项目显示
     selectedItem.content = (
       <FlightCard
@@ -550,11 +550,12 @@ const App = () => {
 
   const calculate = async () => {
     try {
-      const response = await fetch('http://localhost:5000/api/calculate', {
+      const response = await fetch(`http://localhost:5000/api/calculate`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
+        body: JSON.stringify({ file: file, is_modified: modified }),
       });
 
       if (!response.ok) {
@@ -573,7 +574,6 @@ const App = () => {
         try {
           const data = JSON.parse(e.data);
           setCalculationStatus(data.status);
-          setProgress(data.progress);
           console.log(eventSource.readyState);
           console.log(data);
         } catch (err) {
@@ -655,13 +655,14 @@ const App = () => {
           <button className="restore-btn" onClick={() => {
             localStorage.setItem('savedData', '');
             getData(file).then(convertData);
+            setModified(false);
           }}>
             <i className="fas fa-plus"></i> 还原
           </button>
         </span>
 
         <span className="controls">
-          <button className="btn" onClick={() => { alert(`${progress}% ${calculationStatus}`) }}>
+          <button className="btn" onClick={() => { alert(`${modified}`) }}>
             <i className="fas fa-plus"></i> 测试（待删除）
           </button>
         </span>
@@ -749,7 +750,7 @@ const App = () => {
         {calculationStatus === "running" && (
           <div className="loading">
             <div className="spinner"></div>
-            <p>正在计算...{progress}</p>
+            <p>正在计算...</p>
           </div>
         )}
 
