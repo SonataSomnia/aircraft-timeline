@@ -1,16 +1,8 @@
-import json
-from datetime import datetime
 import os
-import sys
 import argparse
 import time
 import random
 import pandas as pd
-import xarray as xr
-import numpy as np
-import copy
-import multiprocessing as mp
-from itertools import combinations
 import matplotlib.pyplot as plt
 
 def get_ben(R):#conculate the benefit of aircraft
@@ -447,7 +439,7 @@ def VND(benr,ben, cooldown_lens, iterations=10000):
 def dis_ac(R,param,ind_dis,dis_time,dis_value):
     for j in param.L:
         param.cij[f"{ind_dis}_{j}"] = 1000000
-    ben_r = get_ben(R)
+    benr = get_ben(R)
     
     R,deter = VND_nondel(R,benr,get_ben,dis_time,del_cycle,del_flight)
     
