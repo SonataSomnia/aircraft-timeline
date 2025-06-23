@@ -691,11 +691,6 @@ const App = () => {
           </button>
         </span>
 
-        <span className="controls">
-          <button className="btn" onClick={() => { alert(`${modified}`) }}>
-            <i className="fas fa-plus"></i> 测试（待删除）
-          </button>
-        </span>
       </div>
 
       <div className="timeline-container">
@@ -822,7 +817,7 @@ const App = () => {
             <div className="section">
               <h3>✈️ 航班操作</h3>
               <ul>
-                <li>拖拽 <strong>半透明航班</strong> 调整时间/机型</li>
+                <li>拖拽 <strong>半透明航班</strong> 调整时间</li>
                 <li>双击航班打开详细参数编辑</li>
                 <li>红色背景区域表示时间冲突</li>
               </ul>
@@ -831,6 +826,7 @@ const App = () => {
             <div className="section">
               <h3>🛠️ 工具栏功能</h3>
               <ul>
+                <li><strong>选择数据</strong>：选择要使用的数据</li>
                 <li><strong>上传更改</strong>：保存修改到服务端</li>
                 <li><strong>编辑扰动</strong>：添加机场中断等扰动</li>
                 <li><strong>求解</strong>：自动优化冲突并生成新方案</li>
