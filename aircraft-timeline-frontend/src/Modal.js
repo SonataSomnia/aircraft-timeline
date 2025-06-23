@@ -77,7 +77,9 @@ const DisruptionForm = ({ onSubmit, onClose, initialData, onDataChange }) => {
                       setFormData({
                         ...formData,
                         dis: e.target.value,
-                        ind_dis: selected.indexKey
+                        ind_dis: selected.indexKey,
+                        dis_time: '',
+                        dis_value: ''
                       });
                     }}
                   >
